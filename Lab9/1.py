@@ -1,4 +1,5 @@
 import heapq
+import matplotlib.pyplot as plt
 
 # ----------------------------
 # Manhattan Heuristic
@@ -67,12 +68,12 @@ def reconstruct_path(parent, start, goal):
     return path
 
 # ----------------------------
-# Print Grid in Terminal
+# Terminal Visualization
 # ----------------------------
 def print_grid(grid, path, start, goal):
     path_set = set(path)
     
-    print("\nFinal Grid:\n")
+    print("\nFinal Grid (Terminal View):\n")
     
     for i in range(len(grid)):
         for j in range(len(grid[0])):
@@ -87,6 +88,26 @@ def print_grid(grid, path, start, goal):
             else:
                 print(" . ", end="")
         print()
+
+# ----------------------------
+# Matplotlib Visualization
+# ----------------------------
+def visualize(grid, path, start, goal):
+    plt.figure(figsize=(6,6))
+    plt.imshow(grid, cmap="gray_r")
+    
+    if path:
+        x = [p[1] for p in path]
+        y = [p[0] for p in path]
+        plt.plot(x, y, color="blue", linewidth=2)
+    
+    plt.scatter(start[1], start[0], color="green", s=100, label="Start")
+    plt.scatter(goal[1], goal[0], color="red", s=100, label="Goal")
+    
+    plt.title("A* Path Planning (Manhattan)")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
 
 # ----------------------------
 # MAIN PROGRAM
@@ -112,5 +133,6 @@ path = astar(grid, start, goal)
 
 if path:
     print_grid(grid, path, start, goal)
+    visualize(grid, path, start, goal)
 else:
     print("\nNo path found!")

@@ -17,7 +17,7 @@ def reconstruct_path(parent, start, goal):
     path.append(start)
     path.reverse()
     return path
-
+    dh
 # Search Function
 def search(grid, start, goal, algorithm):
     rows = len(grid)
@@ -137,3 +137,12 @@ elif len(visited_astar) > len(visited_gbfs):
     print("GBFS explored fewer nodes")
 else:
     print("Both explored same number of nodes")
+
+""""
+0 0 0 0 0 0
+0 1 1 0 0 0
+0 0 0 1 0 0 
+0 0 0 0 1 0
+0 0 0 0 0 0
+0 0 0 0 0 0
+"""

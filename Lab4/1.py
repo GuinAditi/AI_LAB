@@ -26,7 +26,6 @@ def bfs(maze, start, end):
         nodes_explored += 1
 
         if (x, y) == end:
-            # Reconstruct path
             path = []
             while (x, y) != start:
                 path.append((x, y))
@@ -76,6 +75,26 @@ def dfs(maze, start, end):
     found = helper(start[0], start[1])
     return (path if found else None), nodes_explored
 
+# ---------------- Visualization Function ----------------
+def visualize_maze(maze, path, title):
+    print(title)
+    path_set = set(path) if path else set()
+
+    for i in range(rows):
+        for j in range(cols):
+            if (i, j) == start:
+                print(" S ", end="")
+            elif (i, j) == end:
+                print(" E ", end="")
+            elif maze[i][j] == 0:
+                print(" █ ", end="")   # wall
+            elif (i, j) in path_set:
+                print(" ▓ ", end="")   # path (dark shade)
+            else:
+                print(" · ", end="")   # free cell
+        print()
+    print()
+
 # ---------------- Run Both Algorithms ----------------
 bfs_path, bfs_nodes = bfs(maze, start, end)
 dfs_path, dfs_nodes = dfs(maze, start, end)
@@ -86,12 +105,14 @@ print("Maze Solver using BFS and DFS\n")
 print("BFS (Shortest Path):")
 print("Path:", bfs_path)
 print("Nodes Explored:", bfs_nodes)
+visualize_maze(maze, bfs_path, "BFS Path Visualization:")
 
-print("\nDFS (Any Valid Path):")
+print("DFS (Any Valid Path):")
 print("Path:", dfs_path)
 print("Nodes Explored:", dfs_nodes)
+visualize_maze(maze, dfs_path, "DFS Path Visualization:")
 
-print("\nComparison:")
+print("Comparison:")
 if bfs_nodes < dfs_nodes:
     print("BFS explored fewer nodes.")
 elif dfs_nodes < bfs_nodes:
