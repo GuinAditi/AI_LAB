@@ -1,54 +1,59 @@
 import random
+import math
 
-CHROM_LENGTH = 5
 MUTATION_RATE = 0.15
 MIN_GENERATIONS = 3
 MAX_GENERATIONS = 50
 
 
-# ---------- USER FUNCTION ----------
+# -------- USER FUNCTION --------
 def user_function(x):
     return eval(FUNCTION)
 
 
-# Decode binary to decimal
+# -------- Decode Binary --------
 def decode(chromosome):
     return int("".join(map(str, chromosome)), 2)
 
 
-# Initialize population
-def initialize_population(pop_size):
+# -------- Encode Decimal --------
+def encode(x, bits):
+    return list(format(x, f'0{bits}b'))
+
+
+# -------- Initialize Population --------
+def initialize_population(pop_size, bits, lower, upper):
     population = []
     while len(population) < pop_size:
-        chrom = [random.randint(0, 1) for _ in range(CHROM_LENGTH)]
-        if user_function(decode(chrom)) != 1:  # avoid optimal initially
-            population.append(chrom)
+        x = random.randint(lower, upper)
+        if user_function(x) != 1:   # avoid optimal initially
+            population.append([int(b) for b in format(x, f'0{bits}b')])
     return population
 
 
-# Print matrix form
+# -------- Print Matrix --------
 def print_matrix(population, title):
     print(f"\n{title} (Matrix Form)")
-    print("-" * 40)
+    print("-" * 50)
     for i, chrom in enumerate(population):
         print(f"S{i+1} -> {chrom}")
-    print("-" * 40)
+    print("-" * 50)
 
 
-# Print detailed table
+# -------- Print Table --------
 def print_table(population, title):
     print(f"\n{title}")
-    print("-" * 65)
-    print(f"{'String':<8}{'Binary':<12}{'Decimal(x)':<12}{'f(x)':<10}")
-    print("-" * 65)
+    print("-" * 75)
+    print(f"{'String':<8}{'Binary':<15}{'Decimal(x)':<15}{'f(x)':<10}")
+    print("-" * 75)
 
     for i, chrom in enumerate(population):
         x = decode(chrom)
-        print(f"S{i+1:<7}{''.join(map(str, chrom)):<12}{x:<12}{user_function(x):<10}")
-    print("-" * 65)
+        print(f"S{i+1:<7}{''.join(map(str, chrom)):<15}{x:<15}{user_function(x):<10}")
+    print("-" * 75)
 
 
-# Tournament Selection
+# -------- Tournament Selection --------
 def tournament_selection(population, pop_size):
     print("\nTournament Selection:")
     new_population = []
@@ -56,25 +61,21 @@ def tournament_selection(population, pop_size):
     for i in range(pop_size):
         a, b = random.sample(range(pop_size), 2)
 
-        c1, c2 = population[a], population[b]
-        x1, x2 = decode(c1), decode(c2)
+        x1, x2 = decode(population[a]), decode(population[b])
         f1, f2 = user_function(x1), user_function(x2)
 
-        print(f"Match {i+1}: S{a+1} ({''.join(map(str,c1))}, f={f1}) "
-              f"vs S{b+1} ({''.join(map(str,c2))}, f={f2})")
+        print(f"Match {i+1}: S{a+1} (f={f1}) vs S{b+1} (f={f2})")
 
         if f1 < f2:
-            print(f"Winner: S{a+1}")
-            new_population.append(c1.copy())
+            new_population.append(population[a].copy())
         else:
-            print(f"Winner: S{b+1}")
-            new_population.append(c2.copy())
+            new_population.append(population[b].copy())
 
     return new_population
 
 
-# Single-point crossover
-def crossover(population, pop_size):
+# -------- Crossover --------
+def crossover(population, pop_size, bits):
     print("\nCrossover:")
     new_population = []
 
@@ -83,8 +84,8 @@ def crossover(population, pop_size):
             parent1 = population[i]
             parent2 = population[i+1]
 
-            point = random.randint(1, CHROM_LENGTH - 1)
-            print(f"Crossover between S{i+1} & S{i+2} at point {point}")
+            point = random.randint(1, bits - 1)
+            print(f"Crossover S{i+1} & S{i+2} at point {point}")
 
             child1 = parent1[:point] + parent2[point:]
             child2 = parent2[:point] + parent1[point:]
@@ -96,29 +97,40 @@ def crossover(population, pop_size):
     return new_population
 
 
-# Mutation
-def mutation(population):
+# -------- Mutation --------
+def mutation(population, bits):
     print("\nMutation:")
     for i in range(len(population)):
-        for j in range(CHROM_LENGTH):
+        for j in range(bits):
             if random.random() < MUTATION_RATE:
                 population[i][j] ^= 1
                 print(f"Bit flipped in S{i+1} at position {j}")
     return population
 
 
-# Main GA
+# -------- Main Genetic Algorithm --------
 def genetic_algorithm():
 
-    pop_size = int(input("Enter population size (example 4): "))
-    population = initialize_population(pop_size)
+    lower = int(input("Enter starting value: "))
+    upper = int(input("Enter ending value: "))
+    pop_size = int(input("Enter population size: "))
 
+    # Calculate number of bits dynamically
+    range_size = upper - lower + 1
+    bits = math.ceil(math.log2(range_size))
+
+    print(f"\nNumber of bits required: {bits}")
+    print(f"Matrix size: {pop_size} x {bits}")
+
+    population = initialize_population(pop_size, bits, lower, upper)
+
+    generation = 1
+
+    # Store initial best
     initial_best_index = min(
         range(pop_size),
         key=lambda i: user_function(decode(population[i]))
     )
-
-    generation = 1
 
     while generation <= MAX_GENERATIONS:
 
@@ -130,10 +142,10 @@ def genetic_algorithm():
         population = tournament_selection(population, pop_size)
         print_table(population, "After Selection")
 
-        population = crossover(population, pop_size)
+        population = crossover(population, pop_size, bits)
         print_table(population, "After Crossover")
 
-        population = mutation(population)
+        population = mutation(population, bits)
         print_table(population, "After Mutation")
 
         best_index = min(
@@ -141,8 +153,7 @@ def genetic_algorithm():
             key=lambda i: user_function(decode(population[i]))
         )
 
-        best_x = decode(population[best_index])
-        best_fx = user_function(best_x)
+        best_fx = user_function(decode(population[best_index]))
 
         if generation >= MIN_GENERATIONS and best_fx == 1:
             print("\nOptimal solution found!")
@@ -150,7 +161,7 @@ def genetic_algorithm():
 
         generation += 1
 
-    # Final best
+    # Final Best
     final_best_index = min(
         range(pop_size),
         key=lambda i: user_function(decode(population[i]))
@@ -162,20 +173,19 @@ def genetic_algorithm():
 
     print("\n\n================ CONCLUSION ================")
     print(f"Initial Best -> S{initial_best_index+1}, "
-          f"Binary: {''.join(map(str,population[initial_best_index]))}, "
           f"x = {decode(population[initial_best_index])}, "
           f"f(x) = {user_function(decode(population[initial_best_index]))}")
 
     print(f"Final Best   -> S{final_best_index+1}, "
-          f"Binary: {''.join(map(str,final_best))}, "
+          f"Binary = {''.join(map(str, final_best))}, "
           f"x = {final_best_x}, "
           f"f(x) = {final_best_fx}")
 
     print(f"Total Generations: {generation}")
-    print("Genetic Algorithm successfully minimized the user-defined function.")
+    print("Genetic Algorithm successfully minimized the function.")
 
 
-# --------- USER INPUT FUNCTION ----------
+# -------- User Function Input --------
 FUNCTION = input("Enter function in terms of x (example: x**2): ")
 
 genetic_algorithm()
