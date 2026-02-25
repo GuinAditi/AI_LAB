@@ -136,3 +136,20 @@ if path:
     visualize(grid, path, start, goal)
 else:
     print("\nNo path found!")
+
+'''Enter number of rows: 5
+Enter number of columns: 5
+
+Enter grid row by row:
+0 0 0 0 0
+0 1 1 1 0
+0 0 0 1 0
+1 1 0 0 0
+0 0 0 1 0
+
+Enter start position:
+0 0
+
+Enter goal position:
+4 4
+'''
