@@ -1,34 +1,56 @@
 import random
 
 N = 5
-POP_SIZE = 6
-MAX_GENERATIONS = 100
+POP_SIZE = 4
 
-# Generate a chromosome
+# Generate chromosome
 def generate_chromosome():
     return random.sample(range(N), N)
 
-# Fitness function: number of non-attacking pairs
+# Fitness function
 def fitness(chromosome):
-    non_attacking = 0
-    total_pairs = N * (N - 1) // 2
-
+    total_pairs = N*(N-1)//2
     attacking = 0
 
     for i in range(N):
-        for j in range(i + 1, N):
+        for j in range(i+1, N):
 
-            # same row
             if chromosome[i] == chromosome[j]:
                 attacking += 1
 
-            # same diagonal
-            if abs(chromosome[i] - chromosome[j]) == abs(i - j):
+            if abs(chromosome[i]-chromosome[j]) == abs(i-j):
                 attacking += 1
 
-    non_attacking = total_pairs - attacking
-    return non_attacking
+    return total_pairs - attacking
 
+
+# Print board
+def print_board(chromosome):
+
+    board = [["." for _ in range(N)] for _ in range(N)]
+
+    for col in range(N):
+        row = chromosome[col]
+        board[row][col] = "Q"
+
+    print("\nBoard Representation")
+
+    for r in board:
+        print("|", " | ".join(r), "|")
+
+
+# Initial Population
+population = [generate_chromosome() for _ in range(POP_SIZE)]
+
+print("Initial Population (Chromosomes)\n")
+
+for i, chrom in enumerate(population):
+
+    print("Solution", i+1)
+    print("Chromosome:", chrom)
+    print("Fitness:", fitness(chrom))
+
+    print_board(chrom)
 
 # Tournament Selection
 def tournament_selection(population):
