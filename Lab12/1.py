@@ -1,172 +1,197 @@
-import math
+import sys
+import pygame
 
-# ----------------------------
-# Print Board
-# ----------------------------
-def print_board(board):
-    for row in board:
-        print(" | ".join(row))
-        print("-" * 9)
 
-# ----------------------------
-# Check Winner
-# ----------------------------
-def check_winner(board):
-    # Rows
-    for row in board:
-        if row[0] == row[1] == row[2] and row[0] != " ":
-            return row[0]
+WIDTH, HEIGHT = 600, 700
+BOARD_SIZE = 600
+CELL_SIZE = BOARD_SIZE // 3
+LINE_WIDTH = 8
+MARK_WIDTH = 12
+PADDING = 35
 
-    # Columns
-    for col in range(3):
-        if board[0][col] == board[1][col] == board[2][col] and board[0][col] != " ":
-            return board[0][col]
+BG_COLOR = (240, 245, 255)
+GRID_COLOR = (40, 44, 52)
+X_COLOR = (220, 20, 60)
+O_COLOR = (30, 100, 220)
+TEXT_COLOR = (30, 30, 30)
 
-    # Diagonals
-    if board[0][0] == board[1][1] == board[2][2] and board[0][0] != " ":
-        return board[0][0]
 
-    if board[0][2] == board[1][1] == board[2][0] and board[0][2] != " ":
-        return board[0][2]
+def is_winner(board, player):
+    win_states = [
+        [0, 1, 2], [3, 4, 5], [6, 7, 8],
+        [0, 3, 6], [1, 4, 7], [2, 5, 8],
+        [0, 4, 8], [2, 4, 6],
+    ]
+    return any(all(board[i] == player for i in state) for state in win_states)
 
-    return None
 
-# ----------------------------
-# Check if Moves Left
-# ----------------------------
-def is_moves_left(board):
-    for row in board:
-        if " " in row:
-            return True
-    return False
+def is_full(board):
+    return " " not in board
 
-# ----------------------------
-# Evaluate Board
-# ----------------------------
-def evaluate(board):
-    winner = check_winner(board)
-    if winner == "X":   # AI
-        return 10
-    elif winner == "O": # Human
-        return -10
-    return 0
 
-# ----------------------------
-# Alpha-Beta Pruning
-# ----------------------------
-def alpha_beta(board, depth, is_max, alpha, beta):
-    score = evaluate(board)
-
-    # Terminal states
-    if score == 10 or score == -10:
-        return score
-
-    if not is_moves_left(board):
+def minimax(board, is_max, alpha, beta, depth=0):
+    if is_winner(board, "X"):
+        return 10 - depth
+    if is_winner(board, "O"):
+        return depth - 10
+    if is_full(board):
         return 0
 
-    if is_max:  # AI's move
-        best = -math.inf
-
-        for i in range(3):
-            for j in range(3):
-                if board[i][j] == " ":
-                    board[i][j] = "X"
-                    val = alpha_beta(board, depth + 1, False, alpha, beta)
-                    board[i][j] = " "
-
-                    best = max(best, val)
-                    alpha = max(alpha, best)
-
-                    # PRUNING
-                    if beta <= alpha:
-                        break
-
+    if is_max:
+        best = -float("inf")
+        for i in range(9):
+            if board[i] == " ":
+                board[i] = "X"
+                score = minimax(board, False, alpha, beta, depth + 1)
+                board[i] = " "
+                best = max(best, score)
+                alpha = max(alpha, best)
+                if beta <= alpha:
+                    break
         return best
 
-    else:  # Human's move
-        best = math.inf
+    best = float("inf")
+    for i in range(9):
+        if board[i] == " ":
+            board[i] = "O"
+            score = minimax(board, True, alpha, beta, depth + 1)
+            board[i] = " "
+            best = min(best, score)
+            beta = min(beta, best)
+            if beta <= alpha:
+                break
+    return best
 
-        for i in range(3):
-            for j in range(3):
-                if board[i][j] == " ":
-                    board[i][j] = "O"
-                    val = alpha_beta(board, depth + 1, True, alpha, beta)
-                    board[i][j] = " "
 
-                    best = min(best, val)
-                    beta = min(beta, best)
+def best_move(board):
+    best_score = -float("inf")
+    move = -1
+    for i in range(9):
+        if board[i] == " ":
+            board[i] = "X"
+            score = minimax(board, False, -float("inf"), float("inf"))
+            board[i] = " "
+            if score > best_score:
+                best_score = score
+                move = i
+    return move
 
-                    # PRUNING
-                    if beta <= alpha:
-                        break
 
-        return best
+def draw_grid(screen):
+    for i in range(1, 3):
+        pygame.draw.line(
+            screen,
+            GRID_COLOR,
+            (i * CELL_SIZE, 0),
+            (i * CELL_SIZE, BOARD_SIZE),
+            LINE_WIDTH,
+        )
+        pygame.draw.line(
+            screen,
+            GRID_COLOR,
+            (0, i * CELL_SIZE),
+            (BOARD_SIZE, i * CELL_SIZE),
+            LINE_WIDTH,
+        )
 
-# ----------------------------
-# Find Best Move for AI
-# ----------------------------
-def find_best_move(board):
-    best_val = -math.inf
-    best_move = (-1, -1)
 
-    for i in range(3):
-        for j in range(3):
-            if board[i][j] == " ":
-                board[i][j] = "X"
-                move_val = alpha_beta(board, 0, False, -math.inf, math.inf)
-                board[i][j] = " "
+def draw_marks(screen, board):
+    for idx, mark in enumerate(board):
+        row, col = divmod(idx, 3)
+        cx = col * CELL_SIZE + CELL_SIZE // 2
+        cy = row * CELL_SIZE + CELL_SIZE // 2
 
-                if move_val > best_val:
-                    best_val = move_val
-                    best_move = (i, j)
+        if mark == "X":
+            x1, y1 = cx - (CELL_SIZE // 2 - PADDING), cy - (CELL_SIZE // 2 - PADDING)
+            x2, y2 = cx + (CELL_SIZE // 2 - PADDING), cy + (CELL_SIZE // 2 - PADDING)
+            pygame.draw.line(screen, X_COLOR, (x1, y1), (x2, y2), MARK_WIDTH)
+            pygame.draw.line(screen, X_COLOR, (x1, y2), (x2, y1), MARK_WIDTH)
+        elif mark == "O":
+            pygame.draw.circle(
+                screen,
+                O_COLOR,
+                (cx, cy),
+                CELL_SIZE // 2 - PADDING,
+                MARK_WIDTH,
+            )
 
-    return best_move
 
-# ----------------------------
-# MAIN GAME
-# ----------------------------
-def play_game():
-    board = [[" " for _ in range(3)] for _ in range(3)]
+def draw_status(screen, game_over):
+    status_rect = pygame.Rect(0, BOARD_SIZE, WIDTH, HEIGHT - BOARD_SIZE)
+    pygame.draw.rect(screen, BG_COLOR, status_rect)
 
-    print("Tic Tac Toe (You = O, AI = X)\n")
+    # Visual indicator bar (green while playing, amber when game over)
+    indicator_color = (50, 170, 90) if not game_over else (220, 160, 40)
+    pygame.draw.rect(
+        screen,
+        indicator_color,
+        pygame.Rect(30, BOARD_SIZE + 40, WIDTH - 60, 20),
+        border_radius=10,
+    )
+
+
+def reset_game():
+    return [" "] * 9, False, "Your turn (O)"
+
+
+def main():
+    pygame.init()
+    screen = pygame.display.set_mode((WIDTH, HEIGHT))
+    pygame.display.set_caption("Tic-Tac-Toe (Minimax AI)")
+
+    clock = pygame.time.Clock()
+
+    board, game_over, status = reset_game()
 
     while True:
-        print_board(board)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
 
-        # Human move
-        row, col = map(int, input("Enter your move (row col): ").split())
-        if board[row][col] != " ":
-            print("Invalid move! Try again.")
-            continue
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
+                board, game_over, status = reset_game()
 
-        board[row][col] = "O"
+            if event.type == pygame.MOUSEBUTTONDOWN and not game_over:
+                mx, my = event.pos
+                if my < BOARD_SIZE:
+                    row = my // CELL_SIZE
+                    col = mx // CELL_SIZE
+                    idx = row * 3 + col
 
-        if check_winner(board) == "O":
-            print_board(board)
-            print("You win!")
-            break
+                    if board[idx] == " ":
+                        board[idx] = "O"
 
-        if not is_moves_left(board):
-            print_board(board)
-            print("It's a draw!")
-            break
+                        if is_winner(board, "O"):
+                            game_over = True
+                            status = "You win!"
+                        elif is_full(board):
+                            game_over = True
+                            status = "Draw!"
+                        else:
+                            ai_idx = best_move(board)
+                            if ai_idx != -1:
+                                board[ai_idx] = "X"
 
-        # AI move
-        ai_move = find_best_move(board)
-        board[ai_move[0]][ai_move[1]] = "X"
+                            if is_winner(board, "X"):
+                                game_over = True
+                                status = "AI wins!"
+                            elif is_full(board):
+                                game_over = True
+                                status = "Draw!"
+                            else:
+                                status = "Your turn (O)"
 
-        print("\nAI played:\n")
+        screen.fill(BG_COLOR)
+        draw_grid(screen)
+        draw_marks(screen, board)
+        draw_status(screen, game_over)
 
-        if check_winner(board) == "X":
-            print_board(board)
-            print("AI wins!")
-            break
+        pygame.display.set_caption(f"Tic-Tac-Toe (Minimax AI) | {status} | Press R to restart")
 
-        if not is_moves_left(board):
-            print_board(board)
-            print("It's a draw!")
-            break
+        pygame.display.flip()
+        clock.tick(60)
 
 
-# Run the game
-play_game()
+if __name__ == "__main__":
+    main()
